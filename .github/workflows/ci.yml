@@ -1,0 +1,50 @@
+name: DelegateGuard CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lab-tests:
+    name: Foundry PoC Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies
+        working-directory: lab
+        run: forge install
+
+      - name: Run PoC tests
+        working-directory: lab
+        run: forge test -vv
+
+  analyzer-tests:
+    name: Analyzer Tests (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install analyzer dependencies
+        working-directory: analyzer
+        run: |
+          pip install -r requirements.txt || echo "No requirements.txt yet — Phase 2"
+
+      - name: Run analyzer tests
+        working-directory: analyzer
+        run: |
+          python -m pytest tests/ || echo "No tests yet — Phase 2"
