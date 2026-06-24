@@ -129,7 +129,7 @@ contract DC07_SweeperTest is Test {
         vm.prank(randomUser);
         DC07_SweeperDelegate(victimEOA).sweepETH(payable(randomUser));
 
-        assertEq(victimEOA.balance, 0, "Anyone can drain — no auth check");
+        assertEq(victimEOA.balance, 0, "Anyone can drain - no auth check");
     }
 
     // =========================================================================
