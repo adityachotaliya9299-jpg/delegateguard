@@ -121,7 +121,7 @@ contract DC02_InitFrontrunTest is Test {
         );
         // Attack works because attacker == owner
         assertEq(DC02_UninitDelegate(victimEOA).getOwner(), attacker, "Attacker owns the delegate");
-        console.log("Attacker owns victim EOA's delegate — full control achieved");
+        console.log("Attacker owns victim EOA's delegate - full control achieved");
     }
 
     // =========================================================================
