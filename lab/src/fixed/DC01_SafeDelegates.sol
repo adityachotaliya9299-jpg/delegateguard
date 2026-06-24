@@ -95,7 +95,7 @@ contract DC01_DelegateB_Safe {
     function initiateRecovery() external {
         DelegateBStorage storage s = _store();
         require(s.guardian != address(0), "no guardian");
-        require(s.recoveryDelay > 0, "zero delay — init not complete");
+        require(s.recoveryDelay > 0, "zero delay - init not complete");
         // ... safe recovery logic
     }
 
