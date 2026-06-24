@@ -119,13 +119,13 @@ contract DC01_StorageCollisionTest is Test {
 
         uint256 delay = DC01_DelegateB_Vulnerable(victimEOA).getRecoveryDelay();
         console.log("Recovery delay:", delay, "(should be 7 days = 604800)");
-        assertEq(delay, 0, "COLLISION: recovery delay is 0 — time-lock bypassed");
+        assertEq(delay, 0, "COLLISION: recovery delay is 0 - time-lock bypassed");
 
         // Attacker can now trigger instant recovery
         vm.prank(attacker);
         DC01_DelegateB_Vulnerable(victimEOA).initiateRecovery();
         // No revert — recovery proceeds with zero delay
-        console.log("Instant recovery triggered by attacker — time-lock bypassed!");
+        console.log("Instant recovery triggered by attacker - time-lock bypassed!");
     }
 
     // =========================================================================
