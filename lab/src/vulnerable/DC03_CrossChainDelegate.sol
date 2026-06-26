@@ -80,7 +80,7 @@ contract DC03_CrossChainDelegate {
         bytes32 structHash = keccak256(abi.encode(
             BATCH_TYPEHASH,
             keccak256(abi.encodePacked(targets)),
-            keccak256(abi.encodePacked(calldatas)),
+            keccak256(abi.encode(calldatas)),
             keccak256(abi.encodePacked(values)),
             currentNonce
         ));
