@@ -37,7 +37,7 @@ contract PA03_ExtcodeSizeTest is Test {
         vm.etch(delegatedEOA, delegate.code);
 
         uint256 codeSize;
-        assembly { codeSize := extcodesize(delegatedEOA) }
+        codeSize = delegatedEOA.code.length;
         console.log("Delegated EOA extcodesize:", codeSize);
         assertTrue(codeSize > 0, "Delegated EOA has code");
 
