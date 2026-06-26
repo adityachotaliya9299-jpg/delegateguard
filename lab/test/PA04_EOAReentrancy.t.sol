@@ -47,7 +47,7 @@ contract PA04_EOAReentrancyTest is Test {
 
         // Store the target in the EOA's storage slot 0 (matching ReentrantReceiver layout)
         vm.store(delegatedEOA, bytes32(uint256(0)), bytes32(uint256(uint160(address(vulnProtocol)))));
-        vm.store(delegatedEOA, bytes32(uint256(1)), bytes32(uint256(uint160(delegatedEOA))));
+        vm.store(delegatedEOA, bytes32(uint256(1)), bytes32(uint256(uint160(address(delegatedEOA)))));
 
         vm.deal(address(vulnProtocol), 5 ether);
         uint256 protocolBefore = address(vulnProtocol).balance;
@@ -78,7 +78,7 @@ contract PA04_EOAReentrancyTest is Test {
         ReentrantReceiver receiver = new ReentrantReceiver(address(safeProtocol), delegatedEOA);
         vm.etch(delegatedEOA, address(receiver).code);
         vm.store(delegatedEOA, bytes32(uint256(0)), bytes32(uint256(uint160(address(safeProtocol)))));
-        vm.store(delegatedEOA, bytes32(uint256(1)), bytes32(uint256(uint160(delegatedEOA))));
+        vm.store(delegatedEOA, bytes32(uint256(1)), bytes32(uint256(uint160(address(delegatedEOA)))));
 
         vm.deal(address(safeProtocol), 5 ether);
 
