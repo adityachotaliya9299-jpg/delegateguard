@@ -174,9 +174,9 @@ contract DC06_BatchReplayTest is Test {
         internal view returns (bytes32)
     {
         bytes32 DOMAIN_TH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-        bytes32 CALL_TH   = keccak256("SignedCall(address target,bytes calldata,uint256 value,uint256 nonce)");
+        bytes32 CALL_TH   = keccak256("SignedCall(bytes calldata,uint256 value,uint256 nonce)");
         bytes32 domSep = keccak256(abi.encode(DOMAIN_TH, keccak256("BatchDelegate"), block.chainid, address(victimEOA)));
-        bytes32 structHash = keccak256(abi.encode(CALL_TH, target, keccak256(data), value, nonce));
+        bytes32 structHash = keccak256(abi.encode(CALL_TH, keccak256(data), value, nonce));
         return keccak256(abi.encodePacked("\x19\x01", domSep, structHash));
     }
 
