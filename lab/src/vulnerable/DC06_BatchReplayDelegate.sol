@@ -37,7 +37,7 @@ contract DC06_BatchReplayDelegate {
     //  Nonce is per-target, not global — allows replay against fresh targets
     //  No deadline field — signatures are valid forever
     bytes32 public constant CALL_TYPEHASH = keccak256(
-        "SignedCall(address target,bytes calldata,uint256 value,uint256 nonce)"
+        "SignedCall(bytes calldata,uint256 value,uint256 nonce)"
     );
 
     function domainSeparator() public view returns (bytes32) {
@@ -77,7 +77,6 @@ contract DC06_BatchReplayDelegate {
 
         bytes32 structHash = keccak256(abi.encode(
             CALL_TYPEHASH,
-            target,
             keccak256(data),
             value,
             nonce
