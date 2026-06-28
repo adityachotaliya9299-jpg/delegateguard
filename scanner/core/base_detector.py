@@ -1,5 +1,5 @@
 """
-DelegateGuard Scanner — base detector for protocol-assumption bugs. Mirrors analyzer/core/base_detector.py but lives in the scanner package.
+DelegateGuard Scanner — base detector for protocol-assumption bugs (PA-01..PA-05).
 """
 from __future__ import annotations
 from abc import ABC, abstractmethod
@@ -8,8 +8,7 @@ from typing import List, TYPE_CHECKING
 if TYPE_CHECKING:
     from slither import Slither
 
-# Reuse the Finding model from the analyzer core
-from analyzer.core.finding import Finding, BugClass  # noqa: F401
+from .finding import Finding, BugClass  # noqa: F401
 
 
 class BaseScannerDetector(ABC):
@@ -25,7 +24,6 @@ class BaseScannerDetector(ABC):
 
     @abstractmethod
     def run(self) -> List[Finding]:
-        """Run the detector and return findings."""
         ...
 
     def _all_contracts(self):
@@ -43,7 +41,6 @@ class BaseScannerDetector(ABC):
             return None, None
 
     def _deduplicate(self, findings: List[Finding]) -> List[Finding]:
-        """Remove exact duplicate findings (same contract + function + bug_class)."""
         seen = set()
         unique = []
         for f in findings:
