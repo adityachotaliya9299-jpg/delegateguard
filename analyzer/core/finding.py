@@ -26,6 +26,7 @@ class BugClass(str, Enum):
     DC07_SWEEPER              = "DC-07"
     DC08_SIG_MALLEABILITY     = "DC-08"
     # Protocol-assumption bugs (E2)
+
     PA01_TX_ORIGIN            = "PA-01"
     PA02_SENDER_ORIGIN_GATE   = "PA-02"
     PA03_EXTCODESIZE          = "PA-03"
