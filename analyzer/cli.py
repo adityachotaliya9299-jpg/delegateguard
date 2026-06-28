@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DelegateGuard CLI : Delegate Contract Analyzer (Engine 1)
+DelegateGuard CLI — Phase 2: Delegate Contract Analyzer (Engine 1)
 
 Usage:
     delegateguard analyze <target> [options]
