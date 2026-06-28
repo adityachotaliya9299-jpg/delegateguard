@@ -1,26 +1,34 @@
 """
-DelegateGuard scanner detector registry.
+DelegateGuard detector registry — DC-01 through DC-08 only.
 """
-from .pa01_tx_origin         import PA01_TxOriginDetector
-from .pa02_sender_origin_gate import PA02_SenderOriginGateDetector
-from .pa03_extcodesize       import PA03_ExtcodesizeDetector
-from .pa04_eoa_reentrancy    import PA04_EOAReentrancyDetector
-from .pa05_eoa_uniqueness    import PA05_EOAUniquenessDetector
+from .dc01_storage_collision  import DC01_StorageCollisionDetector
+from .dc02_init_frontrun      import DC02_InitFrontrunDetector
+from .dc03_cross_chain_replay import DC03_CrossChainReplayDetector
+from .dc04_missing_auth       import DC04_MissingAuthDetector
+from .dc05_inner_delegatecall import DC05_InnerDelegatecallDetector
+from .dc06_batch_replay       import DC06_BatchReplayDetector
+from .dc07_sweeper            import DC07_SweeperDetector
+from .dc08_sig_malleability   import DC08_SigMalleabilityDetector
 
-# Ordered by severity
-SCANNER_DETECTORS = [
-    PA04_EOAReentrancyDetector,    # CRITICAL
-    PA01_TxOriginDetector,         # HIGH
-    PA02_SenderOriginGateDetector, # HIGH
-    PA03_ExtcodesizeDetector,      # HIGH
-    PA05_EOAUniquenessDetector,    # MEDIUM
+DELEGATE_DETECTORS = [
+    DC07_SweeperDetector,
+    DC05_InnerDelegatecallDetector,
+    DC03_CrossChainReplayDetector,
+    DC01_StorageCollisionDetector,
+    DC02_InitFrontrunDetector,
+    DC04_MissingAuthDetector,
+    DC06_BatchReplayDetector,
+    DC08_SigMalleabilityDetector,
 ]
 
 __all__ = [
-    "SCANNER_DETECTORS",
-    "PA01_TxOriginDetector",
-    "PA02_SenderOriginGateDetector",
-    "PA03_ExtcodesizeDetector",
-    "PA04_EOAReentrancyDetector",
-    "PA05_EOAUniquenessDetector",
+    "DELEGATE_DETECTORS",
+    "DC01_StorageCollisionDetector",
+    "DC02_InitFrontrunDetector",
+    "DC03_CrossChainReplayDetector",
+    "DC04_MissingAuthDetector",
+    "DC05_InnerDelegatecallDetector",
+    "DC06_BatchReplayDetector",
+    "DC07_SweeperDetector",
+    "DC08_SigMalleabilityDetector",
 ]
