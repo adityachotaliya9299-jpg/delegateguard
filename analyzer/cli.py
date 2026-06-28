@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """
-DelegateGuard CLI — Phase 2: Delegate Contract Analyzer (Engine 1)
+DelegateGuard CLI
 
 Usage:
-    delegateguard analyze <target> [options]
-
-Examples:
-    delegateguard analyze contracts/MyDelegate.sol
-    delegateguard analyze contracts/ --json
-    delegateguard analyze contracts/MyDelegate.sol --severity CRITICAL HIGH
+    delegateguard analyze <target> [options]   # DC-01..DC-08
+    delegateguard scan    <target> [options]   # PA-01..PA-05
 """
 from __future__ import annotations
 
@@ -26,17 +22,12 @@ from rich import box
 
 console = Console()
 
-
-# ---------------------------------------------------------------------------
-# Severity colours for the terminal output
-# ---------------------------------------------------------------------------
 SEVERITY_STYLE = {
     "CRITICAL": "bold red",
     "HIGH":     "bold yellow",
     "MEDIUM":   "yellow",
     "INFO":     "dim",
 }
-
 SEVERITY_ICON = {
     "CRITICAL": "[red]CRIT[/red]",
     "HIGH":     "[yellow]HIGH[/yellow]",
@@ -45,30 +36,33 @@ SEVERITY_ICON = {
 }
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
 @click.group()
 def cli():
-    """DelegateGuard — EIP-7702 delegate contract security analyzer."""
+    """DelegateGuard — EIP-7702 security analyzer."""
     pass
 
 
+# ---------------------------------------------------------------------------
+# ANALYZE command — Delegate contract analyzer (Engine 1, DC-01..DC-08)
+# ---------------------------------------------------------------------------
+
 @cli.command("analyze")
 @click.argument("target", type=click.Path(exists=True))
-@click.option("--json",     "output_json", is_flag=True, help="Output findings as JSON.")
+@click.option("--json",     "output_json", is_flag=True)
 @click.option("--severity", "-s", multiple=True,
-              type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "INFO"], case_sensitive=False),
-              help="Filter output to these severities (repeatable).")
-@click.option("--solc",     default=None,  help="Path to solc binary.")
-@click.option("--out",      default=None,  type=click.Path(), help="Write JSON report to file.")
+              type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "INFO"],
+                                case_sensitive=False))
+@click.option("--solc",     default=None)
+@click.option("--out",      default=None, type=click.Path())
 def analyze(target: str, output_json: bool, severity: tuple,
             solc: Optional[str], out: Optional[str]):
-    """
-    Analyze a delegate contract (or directory) for EIP-7702-specific bugs.
+    """Analyze a delegate contract for EIP-7702-specific bugs (DC-01..DC-08).
 
-    TARGET can be a .sol file or a directory containing Solidity files.
+    \b
+    Examples:
+      delegateguard analyze contracts/MyDelegate.sol
+      delegateguard analyze contracts/ --severity CRITICAL --severity HIGH
+      delegateguard analyze contracts/ --json --out report.json
     """
     _print_banner()
 
@@ -79,64 +73,129 @@ def analyze(target: str, output_json: bool, severity: tuple,
         console.print("Run: [cyan]pip install slither-analyzer[/cyan]")
         sys.exit(1)
 
-    from .detectors import DELEGATE_DETECTORS
+    # Import here (not at module level) so CLI loads even without detectors present
+    from analyzer.detectors import DELEGATE_DETECTORS
 
     console.print(f"[bold]Target:[/bold] {target}")
-    console.print(f"[bold]Detectors:[/bold] {len(DELEGATE_DETECTORS)} (DC-01 through DC-08)\n")
+    console.print(f"[bold]Mode:[/bold]   Delegate-contract analyzer (DC-01..DC-08)")
+    console.print(f"[bold]Detectors:[/bold] {len(DELEGATE_DETECTORS)}\n")
 
-    # Run Slither
+    slither = _run_slither(target, solc)
+    if slither is None:
+        sys.exit(1)
+
+    all_findings = _run_detectors(DELEGATE_DETECTORS, slither)
+    all_findings = _filter_and_sort(all_findings, severity)
+
+    _output(all_findings, target, "delegate-analyze", output_json, out)
+
+
+# ---------------------------------------------------------------------------
+# SCAN command — Protocol-assumption scanner (Engine 2, PA-01..PA-05)
+# ---------------------------------------------------------------------------
+
+@cli.command("scan")
+@click.argument("target", type=click.Path(exists=True))
+@click.option("--json",     "output_json", is_flag=True)
+@click.option("--severity", "-s", multiple=True,
+              type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "INFO"],
+                                case_sensitive=False))
+@click.option("--solc",     default=None)
+@click.option("--out",      default=None, type=click.Path())
+def scan(target: str, output_json: bool, severity: tuple,
+         solc: Optional[str], out: Optional[str]):
+    """Scan any Solidity codebase for post-Pectra protocol-assumption bugs (PA-01..PA-05).
+
+    \b
+    Examples:
+      delegateguard scan contracts/
+      delegateguard scan contracts/Pool.sol --severity CRITICAL --severity HIGH
+      delegateguard scan contracts/ --json --out scan-report.json
+    """
+    _print_banner()
+
+    try:
+        from slither import Slither  # noqa: F401
+    except ImportError:
+        console.print("[bold red]Error:[/bold red] slither-analyzer not installed.")
+        sys.exit(1)
+
+    from scanner.detectors import SCANNER_DETECTORS
+
+    console.print(f"[bold]Target:[/bold] {target}")
+    console.print(f"[bold]Mode:[/bold]   Protocol-assumption scanner (PA-01..PA-05)")
+    console.print(f"[bold]Detectors:[/bold] {len(SCANNER_DETECTORS)}\n")
+
+    slither = _run_slither(target, solc)
+    if slither is None:
+        sys.exit(1)
+
+    all_findings = _run_detectors(SCANNER_DETECTORS, slither)
+    all_findings = _filter_and_sort(all_findings, severity)
+
+    _output(all_findings, target, "protocol-scan", output_json, out)
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+def _run_slither(target: str, solc: Optional[str]):
+    from slither import Slither
     try:
         kwargs = {}
         if solc:
             kwargs["solc"] = solc
         with console.status("[cyan]Running Slither...[/cyan]"):
-            slither = Slither(target, **kwargs)
+            return Slither(target, **kwargs)
     except Exception as e:
         console.print(f"[bold red]Slither error:[/bold red] {e}")
-        sys.exit(1)
+        return None
 
-    # Run all detectors
-    all_findings = []
-    with console.status("[cyan]Running DelegateGuard detectors...[/cyan]"):
-        for detector_cls in DELEGATE_DETECTORS:
+
+def _run_detectors(detector_classes, slither) -> List:
+    findings = []
+    with console.status("[cyan]Running detectors...[/cyan]"):
+        for cls in detector_classes:
             try:
-                detector = detector_cls(slither)
-                findings = detector.run()
-                all_findings.extend(findings)
+                findings.extend(cls(slither).run())
             except Exception as e:
-                console.print(f"[yellow]Warning:[/yellow] detector {detector_cls.__name__} failed: {e}")
+                console.print(f"[yellow]Warning:[/yellow] {cls.__name__} failed: {e}")
+    return findings
 
-    # Filter by severity if requested
-    filter_sevs = [s.upper() for s in severity]
-    if filter_sevs:
-        all_findings = [f for f in all_findings if f.severity.value in filter_sevs]
 
-    # Sort: CRITICAL first, then HIGH, MEDIUM, INFO
-    _SEV_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "INFO": 3}
-    all_findings.sort(key=lambda f: _SEV_ORDER.get(f.severity.value, 99))
+def _filter_and_sort(findings: List, severity: tuple) -> List:
+    if severity:
+        sevs = [s.upper() for s in severity]
+        findings = [f for f in findings if f.severity.value in sevs]
+    order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "INFO": 3}
+    findings.sort(key=lambda f: order.get(f.severity.value, 99))
+    return findings
 
-    # Output
+
+def _output(findings: List, target: str, mode: str,
+            output_json: bool, out: Optional[str]):
     if output_json or out:
         data = {
-            "target":    target,
-            "total":     len(all_findings),
-            "findings":  [f.to_dict() for f in all_findings],
+            "target":   target,
+            "mode":     mode,
+            "total":    len(findings),
+            "findings": [f.to_dict() for f in findings],
         }
-        json_str = json.dumps(data, indent=2)
+        js = json.dumps(data, indent=2)
         if out:
-            Path(out).write_text(json_str)
+            Path(out).write_text(js)
             console.print(f"[green]Report written to:[/green] {out}")
         else:
-            print(json_str)
+            print(js)
         return
-
-    _print_findings(all_findings, target)
+    _print_findings(findings, target)
 
 
 def _print_banner():
     banner = Text()
     banner.append("DelegateGuard", style="bold cyan")
-    banner.append(" — EIP-7702 Delegate Contract Analyzer", style="dim")
+    banner.append(" — EIP-7702 Security Analyzer", style="dim")
     console.print(Panel(banner, box=box.ROUNDED, padding=(0, 2)))
     console.print()
 
@@ -144,39 +203,29 @@ def _print_banner():
 def _print_findings(findings: List, target: str):
     if not findings:
         console.print(Panel(
-            "[bold green]No issues found.[/bold green]\n"
-            "[dim]Note: This tool covers DC-01 through DC-08 (delegate-contract bugs).\n"
-            "For protocol-assumption bugs (PA-01..PA-05), use [cyan]delegateguard scan[/cyan].[/dim]",
+            "[bold green]No issues found.[/bold green]",
             title="[bold green]Clean[/bold green]",
             box=box.ROUNDED,
         ))
         return
 
-    # Summary counts
-    counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "INFO": 0}
+    counts = {}
     for f in findings:
         counts[f.severity.value] = counts.get(f.severity.value, 0) + 1
 
-    summary_parts = []
-    for sev, count in counts.items():
-        if count:
-            style = SEVERITY_STYLE[sev]
-            summary_parts.append(f"[{style}]{count} {sev}[/{style}]")
-
+    parts = [
+        f"[{SEVERITY_STYLE[s]}]{c} {s}[/{SEVERITY_STYLE[s]}]"
+        for s, c in counts.items() if c
+    ]
     console.print(Panel(
-        f"Found [bold]{len(findings)}[/bold] issue(s): " + "  ".join(summary_parts),
-        title=f"[bold red]Issues Found[/bold red]",
+        f"Found [bold]{len(findings)}[/bold] issue(s): " + "  ".join(parts),
+        title="[bold red]Issues Found[/bold red]",
         box=box.ROUNDED,
     ))
     console.print()
 
-    # Findings table
-    table = Table(
-        box=box.SIMPLE_HEAVY,
-        show_header=True,
-        header_style="bold",
-        padding=(0, 1),
-    )
+    table = Table(box=box.SIMPLE_HEAVY, show_header=True,
+                  header_style="bold", padding=(0, 1))
     table.add_column("Sev",      width=6)
     table.add_column("ID",       width=7)
     table.add_column("Contract", width=28)
@@ -191,21 +240,20 @@ def _print_findings(findings: List, target: str):
             f.function or "",
             f.title,
         )
-
     console.print(table)
     console.print()
 
-    # Detailed findings
     for i, f in enumerate(findings, 1):
         sev_style = SEVERITY_STYLE.get(f.severity.value, "")
-        loc = ""
-        if f.source_file and f.line:
-            loc = f"  [dim]{f.source_file}:{f.line}[/dim]"
-
-        console.print(f"[bold]{i}. [{sev_style}]{f.severity.value}[/{sev_style}] "
-                      f"[cyan]{f.bug_class.value}[/cyan] — {f.title}[/bold]{loc}")
-        console.print(f"   [dim]Contract:[/dim] {f.contract}"
-                      + (f"  [dim]Function:[/dim] {f.function}" if f.function else ""))
+        loc = f"  [dim]{f.source_file}:{f.line}[/dim]" if f.source_file and f.line else ""
+        console.print(
+            f"[bold]{i}. [{sev_style}]{f.severity.value}[/{sev_style}] "
+            f"[cyan]{f.bug_class.value}[/cyan] — {f.title}[/bold]{loc}"
+        )
+        console.print(
+            f"   [dim]Contract:[/dim] {f.contract}"
+            + (f"  [dim]Function:[/dim] {f.function}" if f.function else "")
+        )
         console.print(f"   {f.description}")
         console.print(f"   [bold green]Fix:[/bold green] {f.recommendation}")
         console.print(f"   [dim]PoC: {f.poc_ref}[/dim]")
@@ -218,86 +266,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# ---------------------------------------------------------------------------
-# SCAN command — Protocol-assumption scanner (Engine 2, Phase 3)
-# ---------------------------------------------------------------------------
-
-@cli.command("scan")
-@click.argument("target", type=click.Path(exists=True))
-@click.option("--json",     "output_json", is_flag=True, help="Output findings as JSON.")
-@click.option("--severity", "-s", multiple=True,
-              type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "INFO"], case_sensitive=False),
-              help="Filter output to these severities.")
-@click.option("--solc",     default=None, help="Path to solc binary.")
-@click.option("--out",      default=None, type=click.Path(), help="Write JSON report to file.")
-def scan(target: str, output_json: bool, severity: tuple,
-         solc: Optional[str], out: Optional[str]):
-    """
-    Scan any Solidity codebase for post-Pectra protocol-assumption bugs (PA-01..PA-05).
-
-    TARGET can be a .sol file or a directory.
-
-    Examples:
-        delegateguard scan contracts/
-        delegateguard scan contracts/Pool.sol --severity CRITICAL HIGH
-        delegateguard scan contracts/ --json --out scan-report.json
-    """
-    _print_banner()
-
-    try:
-        from slither import Slither
-    except ImportError:
-        console.print("[bold red]Error:[/bold red] slither-analyzer not installed.")
-        sys.exit(1)
-
-    from scanner.detectors import SCANNER_DETECTORS
-
-    console.print(f"[bold]Target:[/bold] {target}")
-    console.print(f"[bold]Mode:[/bold] Protocol-assumption scanner (PA-01..PA-05)")
-    console.print(f"[bold]Detectors:[/bold] {len(SCANNER_DETECTORS)}\n")
-
-    try:
-        kwargs = {}
-        if solc:
-            kwargs["solc"] = solc
-        with console.status("[cyan]Running Slither...[/cyan]"):
-            slither = Slither(target, **kwargs)
-    except Exception as e:
-        console.print(f"[bold red]Slither error:[/bold red] {e}")
-        sys.exit(1)
-
-    all_findings = []
-    with console.status("[cyan]Running DelegateGuard scanner detectors...[/cyan]"):
-        for detector_cls in SCANNER_DETECTORS:
-            try:
-                detector = detector_cls(slither)
-                findings = detector.run()
-                all_findings.extend(findings)
-            except Exception as e:
-                console.print(f"[yellow]Warning:[/yellow] {detector_cls.__name__} failed: {e}")
-
-    filter_sevs = [s.upper() for s in severity]
-    if filter_sevs:
-        all_findings = [f for f in all_findings if f.severity.value in filter_sevs]
-
-    _SEV_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "INFO": 3}
-    all_findings.sort(key=lambda f: _SEV_ORDER.get(f.severity.value, 99))
-
-    if output_json or out:
-        data = {
-            "target":   target,
-            "mode":     "protocol-assumption-scan",
-            "total":    len(all_findings),
-            "findings": [f.to_dict() for f in all_findings],
-        }
-        json_str = json.dumps(data, indent=2)
-        if out:
-            Path(out).write_text(json_str)
-            console.print(f"[green]Report written to:[/green] {out}")
-        else:
-            print(json_str)
-        return
-
-    _print_findings(all_findings, target)
