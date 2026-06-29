@@ -94,7 +94,6 @@ class HarnessGenerator:
         line       = str(finding.line or 0)
         test_name  = self._test_contract_name(finding)
 
-        # Sanitize function name for use in Solidity identifiers
         safe_fn = re.sub(r"[^a-zA-Z0-9_]", "_", function)
 
         replacements = {
