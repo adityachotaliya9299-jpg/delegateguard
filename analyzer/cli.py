@@ -266,3 +266,150 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# HARNESS command — PoC / invariant harness generator (Engine 3, Phase 4)
+# ---------------------------------------------------------------------------
+
+@cli.command("harness")
+@click.argument("target", type=click.Path(exists=True))
+@click.option("--out", "-o", default="harnesses/",
+              show_default=True, type=click.Path(),
+              help="Output directory for generated .t.sol files.")
+@click.option("--severity", "-s", multiple=True,
+              type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "INFO"],
+                                case_sensitive=False),
+              help="Only generate harnesses for these severities.")
+@click.option("--bug",  "-b", multiple=True,
+              help="Only generate harnesses for specific bug classes (e.g. DC-07 PA-04).")
+@click.option("--solc", default=None, help="Path to solc binary.")
+@click.option("--mode", default="both",
+              type=click.Choice(["analyze", "scan", "both"], case_sensitive=False),
+              help="Run analyzer (DC), scanner (PA), or both.")
+def harness(target: str, out: str, severity: tuple, bug: tuple,
+            solc: Optional[str], mode: str):
+    """
+    Generate Foundry test harnesses for every finding in TARGET.
+
+    Runs the analyzer + scanner (or just one), collects all findings,
+    and writes a .t.sol scaffold for each one into --out.
+
+    The generated tests:
+      - compile immediately with forge test (no manual edits needed)
+      - have RED tests (exploit path) pre-stubbed with TODO markers
+      - have GREEN tests (fix path) pre-stubbed
+      - include the exact source file and line from the finding
+
+    \b
+    Examples:
+      delegateguard harness contracts/MyDelegate.sol
+      delegateguard harness contracts/ --out audit-harnesses/ --severity CRITICAL --severity HIGH
+      delegateguard harness contracts/MyDelegate.sol --bug DC-07 --bug DC-05
+      delegateguard harness contracts/ --mode analyze
+    """
+    _print_banner()
+
+    try:
+        from slither import Slither  # noqa: F401
+    except ImportError:
+        console.print("[bold red]Error:[/bold red] slither-analyzer not installed.")
+        sys.exit(1)
+
+    from harness.generator import HarnessGenerator
+
+    console.print(f"[bold]Target:[/bold]  {target}")
+    console.print(f"[bold]Mode:[/bold]    {mode}")
+    console.print(f"[bold]Output:[/bold]  {out}\n")
+
+    # Collect findings from analyzer and/or scanner
+    all_findings = []
+
+    slither = _run_slither(target, solc)
+    if slither is None:
+        sys.exit(1)
+
+    if mode in ("analyze", "both"):
+        from analyzer.detectors import DELEGATE_DETECTORS
+        findings = _run_detectors(DELEGATE_DETECTORS, slither)
+        all_findings.extend(findings)
+        console.print(f"[cyan]Analyzer:[/cyan] {len(findings)} findings")
+
+    if mode in ("scan", "both"):
+        from scanner.detectors import SCANNER_DETECTORS
+        findings = _run_detectors(SCANNER_DETECTORS, slither)
+        all_findings.extend(findings)
+        console.print(f"[cyan]Scanner:[/cyan]  {len(findings)} findings")
+
+    # Apply filters
+    if severity:
+        sevs = [s.upper() for s in severity]
+        all_findings = [f for f in all_findings if f.severity.value in sevs]
+
+    if bug:
+        bugs = [b.upper() for b in bug]
+        all_findings = [f for f in all_findings if f.bug_class.value.upper() in bugs]
+
+    # Deduplicate: one harness per (bug_class, contract, function)
+    seen: set = set()
+    unique_findings = []
+    for f in all_findings:
+        key = (f.bug_class, f.contract, f.function)
+        if key not in seen:
+            seen.add(key)
+            unique_findings.append(f)
+
+    if not unique_findings:
+        console.print(Panel(
+            "[bold yellow]No findings matched the filters.[/bold yellow]\n"
+            "Try removing --severity or --bug filters.",
+            box=box.ROUNDED,
+        ))
+        return
+
+    console.print(f"\n[bold]Generating harnesses for {len(unique_findings)} finding(s)...[/bold]\n")
+
+    # Generate harnesses
+    gen = HarnessGenerator()
+    generated = []
+    skipped   = []
+
+    for f in unique_findings:
+        try:
+            out_path = gen.write(f, output_dir=out)
+            generated.append((f, out_path))
+        except (ValueError, FileNotFoundError) as e:
+            skipped.append((f, str(e)))
+
+    # Summary table
+    if generated:
+        table = Table(box=box.SIMPLE_HEAVY, show_header=True,
+                      header_style="bold", padding=(0, 1))
+        table.add_column("Bug",      width=7)
+        table.add_column("Contract", width=28)
+        table.add_column("Function", width=20)
+        table.add_column("File",     width=50)
+
+        for f, path in generated:
+            table.add_row(
+                f.bug_class.value,
+                f.contract or "",
+                f.function or "",
+                str(path),
+            )
+        console.print(table)
+
+    if skipped:
+        console.print(f"\n[yellow]Skipped {len(skipped)} finding(s):[/yellow]")
+        for f, reason in skipped:
+            console.print(f"  [dim]{f.bug_class.value} {f.contract}: {reason}[/dim]")
+
+    console.print(Panel(
+        f"[bold green]Generated {len(generated)} harness(es)[/bold green] in [cyan]{out}[/cyan]\n\n"
+        f"[dim]Next steps:\n"
+        f"  1. Copy generated files to your Foundry project test/ directory\n"
+        f"  2. Fill in contract imports and TODO placeholders\n"
+        f"  3. Run: forge test --match-contract <HarnessName> -vv[/dim]",
+        title="[bold green]Done[/bold green]",
+        box=box.ROUNDED,
+    ))
