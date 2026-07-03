@@ -413,3 +413,118 @@ def harness(target: str, out: str, severity: tuple, bug: tuple,
         title="[bold green]Done[/bold green]",
         box=box.ROUNDED,
     ))
+
+
+# ---------------------------------------------------------------------------
+# MONITOR command — On-chain delegation monitor (Engine 4, Phase 6)
+# ---------------------------------------------------------------------------
+
+@cli.command("monitor")
+@click.option("--rpc",     required=True, envvar="ETH_RPC_URL",
+              help="Ethereum JSON-RPC endpoint URL. Also reads ETH_RPC_URL env var.")
+@click.option("--chain",   default=1, show_default=True, type=int,
+              help="Chain ID (1=mainnet, 11155111=Sepolia, 42161=Arbitrum).")
+@click.option("--start-block", default=None, type=int,
+              help="Start scanning from this block (default: latest).")
+@click.option("--poll",    default=12.0, show_default=True, type=float,
+              help="Poll interval in seconds.")
+@click.option("--check",   default=None,
+              help="One-shot: check a specific delegate address and exit.")
+@click.option("--registry-path", default=None,
+              help="Path to persist the delegate registry JSON.")
+@click.option("--verbose", is_flag=True, help="Enable debug logging.")
+def monitor(rpc: str, chain: int, start_block: Optional[int],
+            poll: float, check: Optional[str],
+            registry_path: Optional[str], verbose: bool):
+    """
+    Monitor Ethereum for EIP-7702 delegations in real time.
+
+    Indexes type-4 transactions, cross-references delegate addresses
+    against the known-malicious registry, and alerts on suspicious activity.
+
+    \b
+    Examples:
+      # Watch mainnet live
+      delegateguard monitor --rpc https://mainnet.infura.io/v3/KEY
+
+      # Watch Sepolia testnet
+      delegateguard monitor --rpc https://sepolia.infura.io/v3/KEY --chain 11155111
+
+      # Use env var for RPC
+      export ETH_RPC_URL=https://mainnet.infura.io/v3/KEY
+      delegateguard monitor
+
+      # One-shot: check if an address is malicious
+      delegateguard monitor --rpc $ETH_RPC_URL --check 0xDEAD...
+
+      # Start from a specific block
+      delegateguard monitor --rpc $ETH_RPC_URL --start-block 21000000
+    """
+    _print_banner()
+
+    try:
+        from monitor.src import DelegateGuardMonitor
+    except ImportError as e:
+        console.print(f"[bold red]Error:[/bold red] monitor module not found: {e}")
+        console.print("Ensure you are running from the delegateguard root directory.")
+        sys.exit(1)
+
+    mon = DelegateGuardMonitor(
+        rpc_url=rpc,
+        chain_id=chain,
+        start_block=start_block,
+        registry_path=registry_path,
+        poll_interval=poll,
+        verbose=verbose,
+    )
+
+    # One-shot address check
+    if check:
+        console.print(f"[bold]Checking delegate address:[/bold] {check}\n")
+        result = mon.check_address(check)
+
+        status = result.get("status", "unknown")
+        status_color = {
+            "malicious":  "bold red",
+            "suspicious": "bold yellow",
+            "safe":       "bold green",
+            "unknown":    "dim",
+            "revoked":    "dim",
+        }.get(status, "white")
+
+        console.print(Panel(
+            f"[{status_color}]{status.upper()}[/{status_color}]\n\n"
+            + (f"Name: {result['name']}\n" if result.get("name") else "")
+            + (f"Notes: {result['notes']}\n" if result.get("notes") else "")
+            + (f"Risk signals: {', '.join(result['risk_signals'])}" if result.get("risk_signals") else "No risk signals"),
+            title=f"[bold]{check[:20]}...[/bold]",
+            box=box.ROUNDED,
+        ))
+        return
+
+    # Start live monitor
+    console.print(Panel(
+        f"[bold]RPC:[/bold]    {rpc[:50]}...\n"
+        f"[bold]Chain:[/bold]  {chain}\n"
+        f"[bold]Poll:[/bold]   every {poll}s\n"
+        f"[bold]Registry:[/bold] {mon.registry.stats()['total']} known delegates "
+        f"({mon.registry.stats().get('malicious', 0)} malicious)\n\n"
+        "[dim]Ctrl+C to stop[/dim]",
+        title="[bold cyan]DelegateGuard Monitor Starting[/bold cyan]",
+        box=box.ROUNDED,
+    ))
+
+    try:
+        mon.start()
+    except KeyboardInterrupt:
+        console.print("\n[dim]Monitor stopped.[/dim]")
+        status = mon.status()
+        console.print(Panel(
+            f"Blocks scanned: {status['indexer']['total_blocks']}\n"
+            f"Events found:   {status['indexer']['total_events']}\n"
+            f"Alerts raised:  {status['alerts']['total']} "
+            f"({status['alerts'].get('CRITICAL', 0)} critical, "
+            f"{status['alerts'].get('WARNING', 0)} warnings)",
+            title="[bold]Session summary[/bold]",
+            box=box.ROUNDED,
+        ))
