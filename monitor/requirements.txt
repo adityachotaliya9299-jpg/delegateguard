@@ -1,0 +1,4 @@
+# Monitor has zero external dependencies by design —  uses only Python stdlib (urllib, json, logging, time)  so it runs anywhere Python 3.9+ is installed without pip.
+
+# Optional: install web3.py for richer RPC support
+# web3>=6.0.0
