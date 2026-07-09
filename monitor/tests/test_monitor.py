@@ -314,7 +314,7 @@ class TestChainIndexer:
     def test_parse_authorization_from_dict(self):
         indexer = ChainIndexer("http://localhost:8545", chain_id=1)
         auth = {"chainId": "0x1", "address": "0xabcd" + "0" * 36, "nonce": "0x5"}
-        event = indexer._parse_authorization(auth, "0xhash", 100, int(time.time()))
+        event = indexer._parse_authorization(auth, "0xhash", "0xfrom", 100, int(time.time()))
         assert event is not None
         assert event.delegate_address == "0xabcd" + "0" * 36
         assert event.nonce == 5
@@ -323,14 +323,14 @@ class TestChainIndexer:
     def test_parse_authorization_from_list(self):
         indexer = ChainIndexer("http://localhost:8545", chain_id=1)
         auth = ["0x1", "0x" + "a" * 40, "0x3"]
-        event = indexer._parse_authorization(auth, "0xhash", 100, int(time.time()))
+        event = indexer._parse_authorization(auth, "0xhash", "0xfrom", 100, int(time.time()))
         assert event is not None
         assert event.nonce == 3
 
     def test_parse_revocation_address_zero(self):
         indexer = ChainIndexer("http://localhost:8545", chain_id=1)
         auth = {"chainId": "0x1", "address": "0x" + "0" * 40, "nonce": "0x0"}
-        event = indexer._parse_authorization(auth, "0xhash", 100, int(time.time()))
+        event = indexer._parse_authorization(auth, "0xhash", "0xfrom", 100, int(time.time()))
         assert event is not None
         assert event.is_revocation is True
 
