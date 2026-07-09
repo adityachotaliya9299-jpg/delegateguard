@@ -1,0 +1,388 @@
+{
+  "records": [
+    {
+      "address": "0x000000000000000000000000000000000000000a",
+      "status": "safe",
+      "name": "OpenZeppelin ERC7702Utils v1",
+      "notes": "Audited by OZ team. Uses ERC-7201 namespaced storage.",
+      "risk_signals": [],
+      "first_seen_block": null,
+      "eoa_count": 0,
+      "added_by": "manual"
+    },
+    {
+      "address": "0x000000000000000000000000000000000000000b",
+      "status": "safe",
+      "name": "MetaMask Delegation Toolkit v1",
+      "notes": "Cyfrin-audited. Safe init, namespaced storage, chain-bound domain sep.",
+      "risk_signals": [],
+      "first_seen_block": null,
+      "eoa_count": 0,
+      "added_by": "manual"
+    },
+    {
+      "address": "0x000000000000000000000000000000000000000c",
+      "status": "safe",
+      "name": "Coinbase Smart Wallet Delegate",
+      "notes": "Audited. Uses ERC-4337 compatible batch execution with proper nonces.",
+      "risk_signals": [],
+      "first_seen_block": null,
+      "eoa_count": 0,
+      "added_by": "manual"
+    },
+    {
+      "address": "0xdead000000000000000000000000000000000001",
+      "status": "malicious",
+      "name": "Sweeper v1 (Aug 2025 campaign)",
+      "notes": "DC-07 sweeper. execute(address,bytes) with no auth or allowlist. Used in phishing campaign that drained $1.54M from one victim.",
+      "risk_signals": [
+        "DC-07: sweeper pattern",
+        "no owner check on execute()",
+        "arbitrary ETH transfer"
+      ],
+      "first_seen_block": null,
+      "eoa_count": 0,
+      "added_by": "manual"
+    },
+    {
+      "address": "0xdead000000000000000000000000000000000002",
+      "status": "malicious",
+      "name": "Sweeper v2 (Aug 2025 campaign)",
+      "notes": "Variant of the Aug 2025 sweeper. Added sweepERC20() helper.",
+      "risk_signals": [
+        "DC-07: sweeper pattern",
+        "DC-04: no per-call auth",
+        "arbitrary token transfer"
+      ],
+      "first_seen_block": null,
+      "eoa_count": 0,
+      "added_by": "manual"
+    },
+    {
+      "address": "0xdead000000000000000000000000000000000003",
+      "status": "malicious",
+      "name": "Cross-chain replay exploit (Sept 2025)",
+      "notes": "DC-03: domain separator has no chainId. Replayed on Base after mainnet drain.",
+      "risk_signals": [
+        "DC-03: missing chainId in domain separator",
+        "cross-chain replay confirmed"
+      ],
+      "first_seen_block": null,
+      "eoa_count": 0,
+      "added_by": "manual"
+    },
+    {
+      "address": "0xbeef000000000000000000000000000000000001",
+      "status": "suspicious",
+      "name": null,
+      "notes": "Unaudited. Has execute(address,bytes) but with msg.sender check. Missing ERC-7201 storage (DC-01 risk on re-delegation).",
+      "risk_signals": [
+        "DC-01: raw storage slots",
+        "DC-02: unprotected initializer"
+      ],
+      "first_seen_block": null,
+      "eoa_count": 0,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x56ef4d420533e3c4c7e79c64d1f958aa89d2c3a9",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451473,
+      "eoa_count": 10,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x27dbd0e71b85700e29994d6d3a51f2e32442aa61",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451473,
+      "eoa_count": 81,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xd2e28229f6f2c235e57de2ebc727025a1d0530fb",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451474,
+      "eoa_count": 9,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xe3014e9ab2739adef234b3829c79128746160178",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451475,
+      "eoa_count": 13,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x923906ca11609ee8b9a01cf6b698799e164204be",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451475,
+      "eoa_count": 8,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xe6b97aa1490c93c28a14d86c13c9dc9c950643ed",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451475,
+      "eoa_count": 102,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xecad547e905892ff19d162ca57b91f0fecf78469",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451475,
+      "eoa_count": 2,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x0000fb7702036ff9f76044a501ac1aa74cbab16b",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451475,
+      "eoa_count": 4,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xe6cae83bde06e4c305530e199d7217f42808555b",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451477,
+      "eoa_count": 8,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x5d6c18590bdb438792e42fad8c76ed76d17a6b1a",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451478,
+      "eoa_count": 11,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xd6cedde84be40893d153be9d467cd6ad37875b28",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451479,
+      "eoa_count": 5,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x545940f521452b4138b360ad55e28667ea07a8bf",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451479,
+      "eoa_count": 3,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x69e6bd1c4082403fc7917a61f6216552fc1a541d",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451480,
+      "eoa_count": 5,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x490aac77c960b0569c8e446ac7e12490bd44ca1d",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451483,
+      "eoa_count": 6,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x69007702764179f14f51cdce752f4f775d74e139",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451483,
+      "eoa_count": 1,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x0e04736a85433445ef602d07946671685ec94647",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451483,
+      "eoa_count": 177,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x63c0c19a282a1b52b07dd5a65b58948a07dae32b",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451484,
+      "eoa_count": 2,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x18ec006842f647b40a81353b3497d5f589e416ea",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451484,
+      "eoa_count": 98,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xcc0c946eecf01a4bc76bc333ea74ceb04756f17b",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451489,
+      "eoa_count": 2,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xff26b51fb5a6420453f362e26dc5e3d5adbfa208",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451489,
+      "eoa_count": 3,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x7785a22facd31db653ba4928f1d5b81d093f0b2f",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451492,
+      "eoa_count": 2,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x4bf152a41869b2dd66fd9eb6ee250762f3e01671",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451493,
+      "eoa_count": 1,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x000066a00056cd44008768e2af00696e19a30084",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451509,
+      "eoa_count": 1,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xcda3577ca7ef65f6b7201e9bd80375f5628d15f7",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451510,
+      "eoa_count": 11,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xc43b6c6a43e5760a756a67756b2155c7fa735310",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451515,
+      "eoa_count": 8,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xf67b710f95eb8aa07a3180f0addd469fe6e6bde0",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451517,
+      "eoa_count": 1,
+      "added_by": "auto"
+    },
+    {
+      "address": "0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451518,
+      "eoa_count": 1,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x2c6f01799fa9db1e7f2797e5ba892b72b865571d",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451522,
+      "eoa_count": 1,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x4eff4d390d89b2195fe3cb63b06731ae584a1375",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451522,
+      "eoa_count": 1,
+      "added_by": "auto"
+    },
+    {
+      "address": "0x7702cb554e6bfb442cb743a7df23154544a7176c",
+      "status": "unknown",
+      "name": null,
+      "notes": "No risk signals detected. Manual review recommended.",
+      "risk_signals": [],
+      "first_seen_block": 25451524,
+      "eoa_count": 1,
+      "added_by": "auto"
+    }
+  ]
+}

@@ -160,15 +160,21 @@ class ChainIndexer:
             if not auth_list:
                 continue
 
-            tx_hash = tx.get("hash", "")
-            logger.debug(
-                "Block %d tx %s has %d authorization(s)",
-                block_number, tx_hash[:10], len(auth_list),
+            tx_hash  = tx.get("hash", "")
+            # FIX: read the actual EOA address from tx.from (was incorrectly tx_hash before)
+            eoa_from = tx.get("from", "").lower()
+
+            logger.info(
+                "Block %d | tx %s | from %s | %d authorization(s)",
+                block_number,
+                tx_hash[:14] if tx_hash else "unknown",
+                eoa_from[:14] if eoa_from else "unknown",
+                len(auth_list),
             )
 
             for auth in auth_list:
                 event = self._parse_authorization(
-                    auth, tx_hash, block_number, timestamp
+                    auth, tx_hash, eoa_from, block_number, timestamp
                 )
                 if event:
                     events.append(event)
@@ -186,6 +192,7 @@ class ChainIndexer:
         self,
         auth: dict,
         tx_hash: str,
+        eoa_from: str,          # FIX: was missing, was using tx_hash as eoa_address
         block_number: int,
         timestamp: int,
     ) -> Optional[DelegationEvent]:
@@ -196,6 +203,9 @@ class ChainIndexer:
             [chain_id, address, nonce, y_parity, r, s]
         or as a dict from eth_getBlockByNumber with full txs:
             {"chainId": "0x1", "address": "0x...", "nonce": "0x0", ...}
+
+        NOTE: In EIP-7702, the EOA that is delegating is tx.from (the transaction
+        sender). The authorization.address is the DELEGATE contract being pointed to.
         """
         try:
             if isinstance(auth, (list, tuple)):
@@ -215,13 +225,13 @@ class ChainIndexer:
                 return None
 
             # address == 0x0000...0000 means revocation (clearing delegation)
-            is_revocation = address == "0x" + "0" * 40
+            is_revocation = address.lower() == "0x" + "0" * 40
 
             return DelegationEvent(
                 tx_hash=tx_hash,
                 block_number=block_number,
                 block_timestamp=timestamp,
-                eoa_address=tx_hash,      # approximation — real EOA is tx.from
+                eoa_address=eoa_from,          # FIX: actual tx sender, not tx_hash
                 delegate_address=address.lower(),
                 chain_id=chain_id,
                 nonce=nonce,
