@@ -196,11 +196,48 @@ delegateguard monitor --rpc <URL> --verbose
 - **Paymaster / AA-infrastructure providers** — interact directly with delegated EOAs
 - **DeFi protocols** accepting EOA calls under old assumptions — need PA-01..PA-05 coverage
 
+## CI / GitHub Action (Phase 8)
+
+Scan every pull request and comment findings on the diff — like CodeQL/Snyk, but for
+the EIP-7702 attack surface. See [`action.yml`](./action.yml) and the example
+workflow in [`.github/workflows/delegateguard-scan.yml`](./.github/workflows/delegateguard-scan.yml).
+
+```yaml
+- uses: adityachotaliya9299-jpg/delegateguard@main
+  with:
+    target: contracts/
+    mode: both
+    fail-on: CRITICAL   # fail the build on any critical finding (or NONE to only report)
+```
+
+The Action installs the CLI, runs `analyze` + `scan`, posts (or updates) a single PR
+comment with the findings table and remediation detail, and fails the job when the
+severity gate is breached. The gate logic lives in [`scripts/gha_scan.py`](./scripts/gha_scan.py).
+
+## Public API (Phase 10)
+
+The productized CLI. `POST /api/v1/scan` returns structured findings — severity,
+location, remediation, PoC reference, and CWE/SWC mapping — as a frozen JSON contract
+(dashboard route [`/api/v1/scan`](./dashboard/src/app/api/v1/scan/route.ts)):
+
+```bash
+curl -X POST /api/v1/scan \
+  -H "content-type: application/json" \
+  -d '{"target":"contracts/","engine":"both"}'
+```
+
+## Audit report generator (Phase 10)
+
+The dashboard's [`/report`](./dashboard/src/app/report/page.tsx) route turns any scan
+into a print-ready assessment (cover page, executive summary, severity table, findings
+index, per-finding technical detail with CWE/SWC, methodology + limitations) — export
+to PDF straight from the browser. Directly reusable for freelance audit deliverables.
+
 ## Services
 
 The CLI is open source and free to run. Beyond the tool:
 - Scoped EIP-7702 security audits
-- CI tier — GitHub Action wrapping the CLI for continuous scanning
+- CI tier — the GitHub Action above, wrapping the CLI for continuous scanning
 - Monitoring retainer — ongoing on-chain delegation monitoring for a protocol's EOA user base
 
 Get in touch via GitHub Issues or the contact link on the [dashboard](#).
@@ -209,7 +246,8 @@ Get in touch via GitHub Issues or the contact link on the [dashboard](#).
 
 ## Docs
 
-Threat model and full vulnerability catalog: [`docs/`](./docs)
+- Threat model and full vulnerability catalog: [`docs/`](./docs)
+- **Detection limitations** (heuristic boundaries, per-detector false-positive/negative notes): [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md)
 
 ---
 
