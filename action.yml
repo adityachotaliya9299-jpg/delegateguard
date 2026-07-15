@@ -1,0 +1,89 @@
+name: "DelegateGuard EIP-7702 Scan"
+description: "Static analysis for EIP-7702 delegate contracts and post-Pectra protocol assumptions. Comments findings on the PR and can fail the build on severity."
+author: "DelegateGuard"
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  target:
+    description: "Path to the contracts to scan (directory or single .sol file)."
+    required: false
+    default: "."
+  mode:
+    description: "analyze (DC-01..08), scan (PA-01..05), or both."
+    required: false
+    default: "both"
+  fail-on:
+    description: "Fail the job if any finding at or above this severity is present. One of CRITICAL, HIGH, MEDIUM, INFO, or NONE to never fail."
+    required: false
+    default: "CRITICAL"
+  comment:
+    description: "Post findings as a PR comment (true/false). Requires pull-requests: write permission."
+    required: false
+    default: "true"
+  solc:
+    description: "Optional path or version hint for solc."
+    required: false
+    default: ""
+
+outputs:
+  total:
+    description: "Total number of findings."
+    value: ${{ steps.scan.outputs.total }}
+  critical:
+    description: "Number of CRITICAL findings."
+    value: ${{ steps.scan.outputs.critical }}
+  report-path:
+    description: "Path to the merged JSON report."
+    value: ${{ steps.scan.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install DelegateGuard
+      shell: bash
+      run: pip install -e "${{ github.action_path }}"
+
+    - name: Run scan
+      id: scan
+      shell: bash
+      env:
+        DG_TARGET: ${{ inputs.target }}
+        DG_MODE: ${{ inputs.mode }}
+        DG_FAIL_ON: ${{ inputs.fail-on }}
+        DG_SOLC: ${{ inputs.solc }}
+      run: python "${{ github.action_path }}/scripts/gha_scan.py"
+
+    - name: Comment on PR
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = process.env.GITHUB_WORKSPACE + '/delegateguard-comment.md';
+          if (!fs.existsSync(path)) return;
+          const body = fs.readFileSync(path, 'utf8');
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          const marker = '<!-- delegateguard-report -->';
+          const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+          const existing = comments.find(c => c.body && c.body.includes(marker));
+          if (existing) {
+            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+          } else {
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+          }
+
+    - name: Enforce severity gate
+      shell: bash
+      run: |
+        if [ -f delegateguard-failed ]; then
+          echo "::error::DelegateGuard found findings at or above the '${{ inputs.fail-on }}' threshold."
+          exit 1
+        fi
